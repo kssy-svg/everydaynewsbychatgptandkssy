@@ -9,6 +9,10 @@
     font-family: sans-serif;
     padding: 30px;
     transition: background-color 0.3s, color 0.3s;
+    opacity: 0; /* 初期は透明にしてチカチカ防止 */
+  }
+  body.visible {
+    opacity: 1; /* モード設定後に表示 */
   }
   body.light {
     background-color: #f9f9f9;
@@ -97,7 +101,7 @@ let currentCount = 10;
 let items = [];
 let isDark = false;
 
-// Cookieをセットする関数
+// Cookieセット
 function setCookie(name, value, days) {
   const d = new Date();
   d.setTime(d.getTime() + days*24*60*60*1000);
@@ -105,7 +109,7 @@ function setCookie(name, value, days) {
   document.cookie = name + "=" + value + ";" + expires + ";path=/";
 }
 
-// Cookieを取得する関数
+// Cookie取得
 function getCookie(name) {
   const cname = name + "=";
   const decodedCookie = decodeURIComponent(document.cookie);
@@ -119,7 +123,7 @@ function getCookie(name) {
   return "";
 }
 
-// モード切替処理
+// モード適用
 function applyMode(darkMode) {
   if(darkMode) {
     document.body.classList.remove("light");
@@ -134,6 +138,7 @@ function applyMode(darkMode) {
   isDark = darkMode;
 }
 
+// ニュース取得
 async function fetchNews() {
   const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://news.yahoo.co.jp/rss/topics/top-picks.xml');
   try {
@@ -149,6 +154,7 @@ async function fetchNews() {
   }
 }
 
+// ニュース表示
 function showNews() {
   let html = "<ul>";
   for (let i = 0; i < Math.min(currentCount, items.length); i++) {
@@ -161,6 +167,7 @@ function showNews() {
   document.getElementById("news").innerHTML = html;
 }
 
+// ボタンイベント
 document.getElementById("loadMore").addEventListener("click", () => {
   currentCount += 10;
   if (currentCount > items.length) currentCount = items.length;
@@ -171,16 +178,17 @@ document.getElementById("toggleMode").addEventListener("click", () => {
   applyMode(!isDark);
 });
 
-// ページ読み込み時にCookieからモードを読み込んで適用
-window.onload = () => {
+// ページ読み込み時にcookieからモードを読み込み、表示切替＆ニュース取得、チカチカ防止用にvisible追加
+window.addEventListener('DOMContentLoaded', () => {
   const savedMode = getCookie("darkMode");
   if (savedMode === "true") {
     applyMode(true);
   } else {
     applyMode(false);
   }
+  document.body.classList.add('visible');
   fetchNews();
-};
+});
 </script>
 </body>
 </html>
