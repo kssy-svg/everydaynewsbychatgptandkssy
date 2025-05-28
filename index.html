@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>今日の注目ニュースアプリ風 - ダーク/ライト切替</title>
+<title>今日の注目ニュースアプリ風 - ダーク/ライト切替 + Cookie保存</title>
 <style>
   body {
     font-family: sans-serif;
@@ -97,6 +97,43 @@ let currentCount = 10;
 let items = [];
 let isDark = false;
 
+// Cookieをセットする関数
+function setCookie(name, value, days) {
+  const d = new Date();
+  d.setTime(d.getTime() + days*24*60*60*1000);
+  const expires = "expires="+ d.toUTCString();
+  document.cookie = name + "=" + value + ";" + expires + ";path=/";
+}
+
+// Cookieを取得する関数
+function getCookie(name) {
+  const cname = name + "=";
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const ca = decodedCookie.split(';');
+  for(let c of ca) {
+    c = c.trim();
+    if (c.indexOf(cname) === 0) {
+      return c.substring(cname.length, c.length);
+    }
+  }
+  return "";
+}
+
+// モード切替処理
+function applyMode(darkMode) {
+  if(darkMode) {
+    document.body.classList.remove("light");
+    document.body.classList.add("dark");
+    document.getElementById("toggleMode").textContent = "ライトモードにするたけ";
+  } else {
+    document.body.classList.remove("dark");
+    document.body.classList.add("light");
+    document.getElementById("toggleMode").textContent = "ダークモードにするたけ";
+  }
+  setCookie("darkMode", darkMode ? "true" : "false", 365);
+  isDark = darkMode;
+}
+
 async function fetchNews() {
   const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://news.yahoo.co.jp/rss/topics/top-picks.xml');
   try {
@@ -131,19 +168,19 @@ document.getElementById("loadMore").addEventListener("click", () => {
 });
 
 document.getElementById("toggleMode").addEventListener("click", () => {
-  isDark = !isDark;
-  if (isDark) {
-    document.body.classList.remove("light");
-    document.body.classList.add("dark");
-    document.getElementById("toggleMode").textContent = "ライトモードにするたけ";
-  } else {
-    document.body.classList.remove("dark");
-    document.body.classList.add("light");
-    document.getElementById("toggleMode").textContent = "ダークモードにするたけ";
-  }
+  applyMode(!isDark);
 });
 
-fetchNews();
+// ページ読み込み時にCookieからモードを読み込んで適用
+window.onload = () => {
+  const savedMode = getCookie("darkMode");
+  if (savedMode === "true") {
+    applyMode(true);
+  } else {
+    applyMode(false);
+  }
+  fetchNews();
+};
 </script>
 </body>
 </html>
