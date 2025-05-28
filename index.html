@@ -3,58 +3,99 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>今日の注目ニュース</title>
+<title>今日の注目ニュースアプリ風 - ダーク/ライト切替</title>
 <style>
   body {
     font-family: sans-serif;
-    background-color: #f9f9f9;
     padding: 30px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.light {
+    background-color: #f9f9f9;
+    color: #333;
+  }
+  body.dark {
+    background-color: #121212;
+    color: #e0e0e0;
   }
   h1 {
+    transition: color 0.3s;
+  }
+  body.light h1 {
     color: #333;
+  }
+  body.dark h1 {
+    color: #fff;
   }
   #news {
     padding: 20px;
-    background: white;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     margin-bottom: 20px;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+  body.light #news {
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  body.dark #news {
+    background: #1e1e1e;
+    box-shadow: 0 0 10px rgba(255,255,255,0.1);
   }
   ul {
     padding-left: 20px;
   }
   a {
-    color: #0077cc;
     text-decoration: none;
+    transition: color 0.3s;
+  }
+  body.light a {
+    color: #0077cc;
+  }
+  body.dark a {
+    color: #82aaff;
   }
   a:hover {
     text-decoration: underline;
   }
   button {
-    display: block;
-    margin: 0 auto;
-    margin-top: 15px;
-    padding: 10px 25px;
-    font-size: 18px;
-    border-radius: 10px;
+    display: inline-block;
+    margin-right: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 8px;
     border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  #loadMore {
     background-color: #0077cc;
     color: white;
-    cursor: pointer;
   }
-  button:hover {
+  #loadMore:hover {
     background-color: #005fa3;
+  }
+  #toggleMode {
+    background-color: #888;
+    color: white;
+  }
+  #toggleMode:hover {
+    background-color: #555;
   }
 </style>
 </head>
-<body>
+<body class="light">
 <h1>🗞️ 今日の注目ニュース</h1>
-<div id="news">読み込みちゅうたけ…</div>
+
 <button id="loadMore">もっと10個増やすたけ</button>
+<button id="toggleMode">ダークモードにするたけ</button>
+
+<div id="news">読み込みちゅうたけ…</div>
 
 <script>
 let currentCount = 10;
 let items = [];
+let isDark = false;
 
 async function fetchNews() {
   const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://news.yahoo.co.jp/rss/topics/top-picks.xml');
@@ -87,6 +128,19 @@ document.getElementById("loadMore").addEventListener("click", () => {
   currentCount += 10;
   if (currentCount > items.length) currentCount = items.length;
   showNews();
+});
+
+document.getElementById("toggleMode").addEventListener("click", () => {
+  isDark = !isDark;
+  if (isDark) {
+    document.body.classList.remove("light");
+    document.body.classList.add("dark");
+    document.getElementById("toggleMode").textContent = "ライトモードにするたけ";
+  } else {
+    document.body.classList.remove("dark");
+    document.body.classList.add("light");
+    document.getElementById("toggleMode").textContent = "ダークモードにするたけ";
+  }
 });
 
 fetchNews();
