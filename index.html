@@ -3,16 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>チャット & ニュース</title>
+<title>Jiffcy風リアルタイムチャット & ニュース</title>
 <style>
 body { font-family:sans-serif; margin:0; background:#111; color:#fff; display:flex; flex-direction:column; height:100vh; }
 nav { display:flex; padding:10px; background:#222; }
 nav button { margin-right:10px; padding:6px 12px; cursor:pointer; color:#fff; background:#555; border:none; border-radius:4px; }
 nav button.active { background:#0af; }
-
 section { display:none; flex:1; height:calc(100vh - 50px); overflow:auto; }
 section.active { display:flex; flex-direction:column; }
-
 #chat { display:flex; flex-direction:column; flex:1; justify-content:space-between; padding:10px; }
 #top,#bottom { flex:1; display:flex; justify-content:center; align-items:center; font-size:3em; border-bottom:1px solid #444; }
 #bottom { border-bottom:none; }
@@ -24,7 +22,7 @@ input { width:90%; padding:10px; font-size:1.2em; border-radius:8px; border:none
 <body>
 <nav>
 <button id="tab-news">ニュース</button>
-<button id="tab-chat" class="active">リアルタイムチャット</button>
+<button id="tab-chat" class="active">チャット</button>
 </nav>
 
 <section id="news-section">
@@ -39,8 +37,25 @@ input { width:90%; padding:10px; font-size:1.2em; border-radius:8px; border:none
 </div>
 </section>
 
-<script>
-document.addEventListener("DOMContentLoaded", ()=>{
+<script type="module">
+  // Firebase SDK
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+  // Firebase構成（かっしーのプロジェクトに置き換え済み）
+  const firebaseConfig = {
+    apiKey: "AIzaSyCa18VmW_bGfThWTmfCxFr_ygWA-nGMxxc",
+    authDomain: "jiffcylikechat.firebaseapp.com",
+    databaseURL: "https://jiffcylikechat-default-rtdb.firebaseio.com",
+    projectId: "jiffcylikechat",
+    storageBucket: "jiffcylikechat.firebasestorage.app",
+    messagingSenderId: "60268594687",
+    appId: "1:60268594687:web:f3ae6dca6b58d0f63893ca"
+  };
+
+  // Firebase初期化
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
   // タブ切り替え
   const newsBtn = document.getElementById("tab-news");
@@ -61,7 +76,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     newsBtn.classList.remove("active");
   });
 
-  // ニュース取得（Yahoo! RSS例）
+  // ニュース取得
   async function fetchNews() {
     const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://news.yahoo.co.jp/rss/topics/top-picks.xml');
     try {
@@ -84,18 +99,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
   }
   fetchNews();
 
-  // リアルタイムチャット（本物用に置き換え可）
+  // チャット処理
   const top = document.getElementById("top");
   const bottom = document.getElementById("bottom");
   const input = document.getElementById("input");
 
-  // 自分の入力をリアルタイム表示
+  // 自分の文字を書き込み
   input.addEventListener("input", ()=>{
     top.textContent = input.value;
+    set(ref(db,'chat/myText'), input.value);
   });
 
-  // 本物の相手通信はここにWebSocketやFirebaseを組み込む
-});
+  // 相手の文字を監視して表示
+  onValue(ref(db,'chat/otherText'), (snapshot)=>{
+    const val = snapshot.val() || "";
+    bottom.textContent = val;
+  });
+
 </script>
 </body>
 </html>
