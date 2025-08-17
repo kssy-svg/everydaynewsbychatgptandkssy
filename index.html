@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ニュース & Jiffcy</title>
+<style>
+body {
+  font-family: sans-serif;
+  padding: 30px;
+  transition: background-color 0.3s, color 0.3s;
+  opacity: 0; /* 初期は透明にしてチカチカ防止 */
+}
+body.visible { opacity: 1; }
+body.light { background-color: #f9f9f9; color: #000; }
+body.dark { background-color: #222; color: #fff; }
+
+nav { margin-bottom: 20px; }
+nav button { margin-right: 10px; padding: 6px 12px; cursor: pointer; }
+
+section { display: none; }
+section.active { display: block; }
+
+ul { padding-left: 20px; }
+.msg { padding: 10px; border-radius: 10px; margin-bottom: 8px; max-width: 80%; word-wrap: break-word; }
+.msg.me { background: #e8f0fe; align-self: flex-end; }
+.msg.other { background: #f1f3f4; align-self: flex-start; }
+
+form { display: flex; gap: 8px; margin-top: 10px; }
+input { padding: 6px; border-radius: 6px; border: 1px solid #ccc; }
+#name { flex: 0 0 30%; }
+button.send { padding: 6px 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🗞️ 今日の注目ニュース & Jiffcy</h1>
+  <nav>
+    <button id="tab-news">ニュース</button>
+    <button id="tab-chat">チャット</button>
+    <button id="toggle-mode">モード切替</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ニュースセクション -->
+  <section id="news-section" class="active">
+    <div id="news">読み込み中...</div>
+    <button id="loadMore">もっと見る</button>
+  </section>
+
+  <!-- チャットセクション -->
+  <section id="chat-section">
+    <ul id="messages"></ul>
+    <form id="form" autocomplete="off">
+      <input id="name" placeholder="なまえ" required>
+      <input id="text" placeholder="メッセージ" required>
+      <button class="send" type="submit">送る</button>
+    </form>
+  </section>
+</main>
+
+<script>
+// ----- タブ切り替え -----
+const newsBtn = document.getElementById("tab-news");
+const chatBtn = document.getElementById("tab-chat");
+const newsSec = document.getElementById("news-section");
+const chatSec = document.getElementById("chat-section");
+
+newsBtn.addEventListener("click", ()=>{
+  newsSec.classList.add("active");
+  chatSec.classList.remove("active");
+});
+chatBtn.addEventListener("click", ()=>{
+  chatSec.classList.add("active");
+  newsSec.classList.remove("active");
+});
+
+// ----- ダーク/ライトモード -----
+let isDark = false;
+function setCookie(name,value,days){
+  const d=new Date(); d.setTime(d.getTime()+days*24*60*60*1000);
+  document.cookie=name+"="+value+";expires="+d.toUTCString()+";path=/";
+}
+function getCookie(name){
+  const cname=name+"=";
+  const decodedCookie=decodeURIComponent(document.cookie);
+  const ca=decodedCookie.split(';');
+  for(let c of ca){
+    while(c.charAt(0)==' ') c=c.substring(1);
+    if(c.indexOf(cname)==0) return c.substring(cname.length,c.length);
+  }
+  return "";
+}
+function applyMode(darkMode){
+  if(darkMode){
+    document.body.classList.add("dark");
+    document.body.classList.remove("light");
+  } else {
+    document.body.classList.add("light");
+    document.body.classList.remove("dark");
+  }
+  isDark=darkMode;
+  setCookie("darkMode", darkMode, 365);
+}
+document.getElementById("toggle-mode").addEventListener("click", ()=>applyMode(!isDark));
+
+// ----- ニュース取得 -----
+let items=[], currentCount=10;
+async function fetchNews(){
+  const proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent('https://news.yahoo.co.jp/rss/topics/top-picks.xml');
+  try{
+    const res=await fetch(proxyUrl);
+    const data=await res.json();
+    const parser=new DOMParser();
+    const xml=parser.parseFromString(data.contents,"text/xml");
+    const elements=xml.querySelectorAll("item");
+    items=[];
+    elements.forEach(el=>items.push({title:el.querySelector("title").textContent, link:el.querySelector("link").textContent}));
+    showNews();
+  }catch(e){ document.getElementById("news").innerHTML="取得失敗…"; }
+}
+function showNews(){
+  let html="<ul>";
+  for(let i=0;i<Math.min(currentCount,items.length);i++){
+    html+=`<li><a href="${items[i].link}" target="_blank">${items[i].title}</a></li>`;
+  }
+  html+="</ul>";
+  document.getElementById("news").innerHTML=html;
+}
+document.getElementById("loadMore").addEventListener("click", ()=>{
+  currentCount+=10;
+  if(currentCount>items.length) currentCount=items.length;
+  showNews();
+});
+
+// ----- ページ読み込み -----
+window.addEventListener('DOMContentLoaded',()=>{
+  const savedMode=getCookie("darkMode");
+  applyMode(savedMode==="true");
+  document.body.classList.add("visible");
+  fetchNews();
+});
+
+// ----- チャット（basic版例） -----
+const list=document.getElementById("messages");
+const form=document.getElementById("form");
+const nameInput=document.getElementById("name");
+const textInput=document.getElementById("text");
+let messages=JSON.parse(localStorage.getItem("jiffcy_local_messages_v1")||"[]");
+
+function renderChat(){
+  list.innerHTML="";
+  messages.forEach(m=>{
+    const li=document.createElement("li");
+    li.className="msg "+(m.me?"me":"other");
+    li.innerHTML=`<div>${m.text}</div><div class="meta">${m.name} ・ ${new Date(m.ts).toLocaleString()}</div>`;
+    list.appendChild(li);
+  });
+  window.scrollTo(0,document.body.scrollHeight);
+}
+
+form.addEventListener("submit", e=>{
+  e.preventDefault();
+  const msg={id:crypto.randomUUID(),name:nameInput.value||"ななし",text:textInput.value,ts:Date.now(),me:true};
+  if(!msg.text) return;
+  messages.push(msg);
+  localStorage.setItem("jiffcy_local_messages_v1",JSON.stringify(messages));
+  textInput.value="";
+  renderChat();
+});
+
+renderChat();
+</script>
+</body>
+</html>
